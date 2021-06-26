@@ -18,7 +18,8 @@ import matplotlib.pyplot as plt
 
 os.chdir('D:/Documents/Travail perso/Exercices/Montagne_Meteo_France')
 
-######################### data import (if not already loaded ###############################
+
+################ data import (si pas deja charge, autrement dit si main.py pas execute avec enregistrement excel ###################
 try:
     if(table_all_dates_all_stations_batch_filled is not None):
         pass
@@ -30,11 +31,13 @@ except NameError:
 
 
 
-
+#pour les modeles et la selection train / test associee, il y a deja le necessaire enregistre si vous ne voulez pas executer le modele et passer directement au predict.py 
 
 
 ##############################################################################################################################
 ############################################## PREPROCESSING DATA FOR LEARNING  ##############################################
+    
+#selection parametres + nom batch pour 
 dataset = table_all_dates_all_stations_batch_filled.filter(items = ['Latitude_x', 
         'Altitude_x', '_vent_moy_10min_m/s', 'temperature', 'nebulosite', 
        'nebulosite_etage_inf', 'precipitations_24h', 'temperature_min_24h', 'temperature_max_24h', 'hauteur_neige', 
@@ -52,16 +55,16 @@ dataset_scaled['batch'] = dataset['batch'].reset_index(drop = True)
 max_y = dataset['hauteur_neige'].max()
 
 
-#### passage en array. Nombre de batchs (actuellement 335)
+#### Nombre de batchs (actuellement 335)
 list_batches = dataset_scaled['batch'].unique()
 nb_batches = len(list_batches)
 nb_batches
 
-#taille sequence (actuellement 122)
+#taille sequence batch (actuellement 122 car 122 jours)
 len_batch_sequence = dataset_scaled[dataset_scaled.batch == list_batches[0]].shape[0]
 len_batch_sequence
 
-#nombre param entree (actuellement 11)
+#nombre param entree (=X) (actuellement 11, voir les param ci-dessus, et enlever hauteur_neige et batch)
 nb_x_signals = dataset_scaled[dataset_scaled.batch == list_batches[0]].shape[1] - 2
 nb_x_signals
 
@@ -69,6 +72,7 @@ nb_x_signals
 dataset_batches_x = np.empty([len(list_batches), 1])
 dataset_batches_y = np.empty([len(list_batches), 1])
 
+#initialisation tables narrayet remplissage
 dataset_batches_x = np.empty(shape = (nb_batches, len_batch_sequence, nb_x_signals))
 dataset_batches_y = np.empty(shape = (nb_batches, len_batch_sequence, 1))
 
@@ -85,9 +89,10 @@ for batch_num in range(0, len(list_batches)):
 print(dataset_batches_x.shape)
 print(dataset_batches_y.shape)
 
-#affichage des eventuels NA encore presentes. Attention, le moindre NA rendra l'entrainement impossible
+#affichage des eventuels NA encore presentes. Attention, le moindre NA rendra l'entrainement impossible !
 print(np.argwhere(np.isnan(dataset_batches_x)))
 print(np.argwhere(np.isnan(dataset_batches_y)))
+#si pas de NA restant, alors continuer
 
 
 #suppression donnees inutiles

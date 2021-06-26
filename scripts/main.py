@@ -26,7 +26,9 @@ completude_pour_batch = 0.8
 
 #veut-on enregistrer les tables intermediaires en Excel ?
 write_excel_cleaning = False
-update_last_data = True
+
+#veut-on extraire depuis le site Meteo-France les dernieres donnees (jusqu'a la veille)
+update_last_data = False
 
 #placement dossier de travail
 os.chdir('D:/Documents/Travail perso/Exercices/Montagne_Meteo_France/scripts')
@@ -45,7 +47,7 @@ liste_stations = pd.read_csv('data/input/listes_stations.csv', sep = ';')
 if update_last_data == True:
     extract.extract_last_data()
 
-#import des données nivologiques: csv les uns après les autres (mois par mois)
+#import des données nivologiques: csv les uns après les autres, mois par mois
 files_list = os.listdir('data/input/nivo')
 nivo = pd.read_csv('data/input/nivo/' + files_list[1], sep = ';')
 for i in files_list:
@@ -292,10 +294,6 @@ table_all_dates_all_stations_batch.count()
 
 ########################################################### PROCESSING ###############################################################
 
-#rayonnement solaire : fonction puis interpolation
-table_all_dates_all_stations_batch['rayonnement_solaire'] = table_all_dates_all_stations_batch.\
-      apply(lambda x: auxiliary_functions_processing.rayonnement_solaire(x['Latitude_x'], x['datetime']),
-            axis = 1)
   
 
 #passage en numerique des colonnes qui ne l'etaient pas (necessaire pour interpoler et pour la suite)
@@ -312,12 +310,13 @@ table_all_dates_all_stations_batch['temperature_min_24h'] = pd.to_numeric(table_
 table_all_dates_all_stations_batch['temperature_max_24h'] = pd.to_numeric(table_all_dates_all_stations_batch['temperature_max_24h'])
 table_all_dates_all_stations_batch['hauteur_neige_fraiche'] = pd.to_numeric(table_all_dates_all_stations_batch['hauteur_neige_fraiche'])
 
-
+#rayonnement solaire : fonction puis interpolation
+table_all_dates_all_stations_batch['rayonnement_solaire'] = table_all_dates_all_stations_batch.\
+      apply(lambda x: auxiliary_functions_processing.rayonnement_solaire(x['Latitude_x'], x['datetime']),
+            axis = 1)
     
-      
-#remplissage trous : modele le plus simple : interpolations ou remplissage par des zeros selon les parametres
-table_test = table_all_dates_all_stations_batch.copy()
 
+#remplissage trous : modele le plus simple : interpolations ou remplissage par des zeros selon les parametres
 table_all_dates_all_stations_batch_filled = auxiliary_functions_processing.filling_holes_data(
         data_with_holes = table_all_dates_all_stations_batch, 
                                 list_batches = table_all_dates_all_stations_batch.batch.unique() )
@@ -328,8 +327,5 @@ if(write_excel_cleaning == True):
 
  
 
-#hauteur neige : interpolation
-
-
-
+#### fin du main : prochains scripts : learning.py et predict.py
 
