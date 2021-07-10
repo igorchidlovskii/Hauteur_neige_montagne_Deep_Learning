@@ -86,6 +86,16 @@ except NameError:
         list_max_y = pickle.load(fm)
         max_y = list_max_y[0] 
 
+
+#table des batches (avant standardisation)
+try:
+    if(table_all_dates_all_stations_batch_filled is not None):
+        pass
+except NameError:
+    table_all_dates_all_stations_batch_filled = pd.read_excel('data/output/table_complete_morning_cleaned_batchs_filled.xlsx')
+
+
+
 ### fin de la reouverture des donnees et modeles necessaires !
 
 #recalcul du nb de batchs et de leur longueur
@@ -100,24 +110,84 @@ test_y = np.delete(dataset_batches_y, train_batch_select, axis = 0)
 
 
 
+################ PREDICTION AVEC MODELE NAIF ####### -pred, plot and save
+#on prend la table avant standardisation, sur laquelle on applique un modele "naif". 
+#Il ny a pas besoin de standardiser, puisqu'on va faire un modele simple sans apprentissage statistique
+
+#le modele est simple :
+# au jour 0 (=15 decembre), on cale y_pred = y^
+#ensuite, on met y(t) = y(t-1) + hauteur_neige_fraiche(t-1) + {fonte_neige = -0,015 si decembre, janvier fevrier,
+#                                                              fonte_neige = -0,03 si mars, avril}
+
+#on a donc seulement la hausse de hauteur de neige qui se fait par une addition de neige fraiche,
+#et la fonte qui se fait par une valeur constante de 0,015 ou 0,03 (determinée approximativement en faisant plusieurs essais)
+
+error_list_naive_model = []
+
+for batch in table_all_dates_all_stations_batch_filled.batch.unique():
+
+    data_batch = table_all_dates_all_stations_batch_filled[table_all_dates_all_stations_batch_filled.batch == batch]
+    data_batch = data_batch.reset_index(drop=True)
+    data_batch['ht_neige_naive_model'] = np.nan
+    data_batch.loc[0, ['ht_neige_naive_model']] = data_batch.loc[0, ['hauteur_neige']].item()
+
+    sum_error_model = 0 
+    
+    for i in range(1, data_batch.shape[0]):
+        if ((data_batch.loc[i, ['date']].item().month > 1) & (data_batch.loc[i, ['date']].item().month < 5)):
+            melt = 0.03
+        else:
+            melt = 0.015
+    
+        ht_neige_naive_model = data_batch.loc[i-1, ['ht_neige_naive_model']].item() + data_batch.loc[i, ['hauteur_neige_fraiche']].item() - melt
+        data_batch.loc[i, ['ht_neige_naive_model']] = ht_neige_naive_model
+        
+        sum_error_model = sum_error_model + abs(ht_neige_naive_model - data_batch.loc[i, ['hauteur_neige']].item())
+        
+    error_model = sum_error_model/(data_batch.shape[0] - 1)
+    error_list_naive_model.append(error_model)
+    
+    #plot and save
+    plt.figure(figsize=(20, 10) )
+    plt.plot(data_batch.date, data_batch.hauteur_neige, label = 'hauteur neige')
+    plt.plot(data_batch.date, data_batch.ht_neige_naive_model, 
+             label = 'hauteur neige modele naif, mean error =' + str(error_model)[0:4])
+    plt.legend()
+    plt.title(data_batch.batch.unique()[0])
+    plt.grid(True)
+    plt.savefig('figures/predict_naive_model/' + batch + '.png')
+    plt.show()
+
+
+error_list_naive_model
 
 
 
-################ PREDICT ON TEST BATCHES ##### -pred, plot and save-
 
+
+
+
+
+
+
+
+################ PREDICTION SUR BATCHES TEST des modeles : RNN, LSTM, GRU ######## -pred, plot and save-
+
+#initialisation tables erreurs
 list_mean_diff_simplernn_test = []
 list_mean_diff_gru_test = []
 list_mean_diff_lstm_test = []
 
+#valeurs y prediction
 yhat_model_lstm_20_test = model_lstm_20.predict(test_x, batch_size = nb_batches - len(train_batch_select))
 yhat_model_gru_20_test = model_gru_20.predict(test_x, batch_size = nb_batches - len(train_batch_select))
 yhat_model_simplernn_20_test = model_simplernn_20.predict(test_x, batch_size = nb_batches - len(train_batch_select))
 
-#figures of test batches (10% of all batches)
+
 list_batches_test = np.delete(list_batches, train_batch_select)
 for batch in range(0, len(test_x)):
     
-    #zeros of each sequence (for recalibrating)
+    #zeros de chaque sequence, pour recalibration au jour 0
     zero_real = max_y*test_y[batch][0]
     zero_simplernn = max_y*yhat_model_simplernn_20_test[batch][0]
     zero_gru = max_y*yhat_model_gru_20_test[batch][0]
@@ -148,6 +218,7 @@ for batch in range(0, len(test_x)):
     plt.savefig('figures/predict_compare_gru_rnn_lstm_with_recalibration_zero/test/' + list_batches_test[batch] + '.png')
     plt.show()
     
+    #list erreurs
     list_mean_diff_simplernn_test.append(mean_diff_simplernn)
     list_mean_diff_gru_test.append(mean_diff_gru)
     list_mean_diff_lstm_test.append(mean_diff_lstm)
@@ -156,12 +227,14 @@ for batch in range(0, len(test_x)):
 
 
 
-##### PREDICT ON TRAIN BATCHES ##### -pred, plot and save-
+################ PREDICTION SUR BATCHES TRAIN : RNN, LSTM, GRU ########## -pred, plot and save-
 
+#initialisation tables erreurs
 list_mean_diff_simplernn_train = []
 list_mean_diff_gru_train = []
 list_mean_diff_lstm_train = []
 
+#valeurs y prediction
 yhat_model_lstm_20_train = model_lstm_20.predict(train_x, batch_size = len(train_batch_select))
 yhat_model_gru_20_train = model_gru_20.predict(train_x, batch_size = len(train_batch_select))
 yhat_model_simplernn_20_train = model_simplernn_20.predict(train_x, batch_size = len(train_batch_select))
@@ -170,7 +243,7 @@ yhat_model_simplernn_20_train = model_simplernn_20.predict(train_x, batch_size =
 list_batches_train = list_batches[train_batch_select]
 for batch in range(0, len(train_x)):
     
-    #zeros of each sequence (for recalibrating)
+    #zeros de chaque sequence, pour recalibration au jour 0
     zero_real = max_y*train_y[batch][0]
     zero_simplernn = max_y*yhat_model_simplernn_20_train[batch][0]
     zero_gru = max_y*yhat_model_gru_20_train[batch][0]
@@ -201,6 +274,7 @@ for batch in range(0, len(train_x)):
     plt.savefig('figures/predict_compare_gru_rnn_lstm_with_recalibration_zero/train/' + list_batches_train[batch] + '.png')
     plt.show()
 
+    #list erreurs
     list_mean_diff_simplernn_train.append(mean_diff_simplernn)
     list_mean_diff_gru_train.append(mean_diff_gru)
     list_mean_diff_lstm_train.append(mean_diff_lstm)
