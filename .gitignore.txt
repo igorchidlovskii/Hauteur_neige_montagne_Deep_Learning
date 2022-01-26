@@ -1,4 +1,4 @@
-report_anglais.docx
-report_francais_ht_neige_MeteoFrance.docx
-Présentation1.pptx
+doc/report_anglais.docx
+doc/report_francais_ht_neige_MeteoFrance.docx
+doc/Présentation1.pptx
 
