@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 for sta in nivo_complete_morning.Nom.unique():
 
     year_begin = 1996
-    year_end = 2020
+    year_end = 2021
 
     one_sta = nivo_complete_morning[nivo_complete_morning.Nom == sta]
     one_sta = one_sta[one_sta.hauteur_neige != "mq"]
@@ -48,7 +48,7 @@ for sta in nivo_complete_morning.Nom.unique():
 ##### affichage une station specifique (graphiques les uns sous les autres)
     
 year_begin = 1996
-year_end = 2020
+year_end = 2021
 
 one_sta = nivo_complete_morning[nivo_complete_morning.Nom == 'Iraty']
 one_sta = one_sta[one_sta.hauteur_neige != "mq"]
@@ -69,6 +69,11 @@ for y in range(year_begin, year_end +1):
 alt_one_sta = one_sta['Altitude'].unique()
 #plt.savefig('figures/hauteur_neige/'+ sta +'.png')
 plt.show()
+
+
+
+
+
 
 
 

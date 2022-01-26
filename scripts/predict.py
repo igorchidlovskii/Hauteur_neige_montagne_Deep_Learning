@@ -43,6 +43,16 @@ try:
         pass
 except NameError:
     model_simplernn_20 = tf.keras.models.load_model('models/model_simplernn_20')
+    
+#CNN 1D
+try:
+    if(model_cnn is not None):
+        pass
+except NameError:
+    model_cnn = tf.keras.models.load_model('models/model_cnn')
+    
+    
+    
 
 
 #x batches import (ceux utilises pour l'entrainement)
@@ -110,7 +120,9 @@ test_y = np.delete(dataset_batches_y, train_batch_select, axis = 0)
 
 
 
-################ PREDICTION AVEC MODELE NAIF ####### -pred, plot and save
+
+
+################ PREDICTION AVEC MODELE "NAIF" ####### -pred, plot and save-
 #on prend la table avant standardisation, sur laquelle on applique un modele "naif". 
 #Il ny a pas besoin de standardiser, puisqu'on va faire un modele simple sans apprentissage statistique
 
@@ -177,32 +189,42 @@ error_list_naive_model
 list_mean_diff_simplernn_test = []
 list_mean_diff_gru_test = []
 list_mean_diff_lstm_test = []
+list_mean_diff_cnn_test = []
 
 #valeurs y prediction
 yhat_model_lstm_20_test = model_lstm_20.predict(test_x, batch_size = nb_batches - len(train_batch_select))
 yhat_model_gru_20_test = model_gru_20.predict(test_x, batch_size = nb_batches - len(train_batch_select))
 yhat_model_simplernn_20_test = model_simplernn_20.predict(test_x, batch_size = nb_batches - len(train_batch_select))
+yhat_model_cnn_test = model_cnn.predict(test_x, batch_size = nb_batches - len(train_batch_select))
 
 
 list_batches_test = np.delete(list_batches, train_batch_select)
+
 for batch in range(0, len(test_x)):
+    
     
     #zeros de chaque sequence, pour recalibration au jour 0
     zero_real = max_y*test_y[batch][0]
     zero_simplernn = max_y*yhat_model_simplernn_20_test[batch][0]
     zero_gru = max_y*yhat_model_gru_20_test[batch][0]
     zero_lstm = max_y*yhat_model_lstm_20_test[batch][0]
+    zero_cnn = max_y*yhat_model_cnn_test[batch][0]
+    
     
     #difference moyenne entre predit et reel (abs)
     mean_diff_simplernn = (sum(abs(max_y*yhat_model_simplernn_20_test[batch] - zero_simplernn + zero_real - max_y*test_y[batch]))/len_batch_sequence)[0]
     mean_diff_gru = (sum(abs(max_y*yhat_model_gru_20_test[batch] - zero_gru + zero_real - max_y*test_y[batch]))/len_batch_sequence)[0]
     mean_diff_lstm = (sum(abs(max_y*yhat_model_lstm_20_test[batch] - zero_lstm + zero_real - max_y*test_y[batch]))/len_batch_sequence)[0]
+    mean_diff_cnn = (sum(abs(max_y*yhat_model_cnn_test[batch] - zero_cnn + zero_real - max_y*test_y[batch]))/len_batch_sequence)[0]
+    
    
     #ecart type de la difference entre predit et reel (abs)
     std_diff_simplernn = np.std(abs(max_y*yhat_model_simplernn_20_test[batch] - zero_simplernn + zero_real - max_y*test_y[batch]))
     std_diff_gru = np.std(abs(max_y*yhat_model_gru_20_test[batch] - zero_gru + zero_real - max_y*test_y[batch]))
     std_diff_lstm = np.std(abs(max_y*yhat_model_lstm_20_test[batch] - zero_lstm + zero_real - max_y*test_y[batch]))
+    std_diff_cnn = np.std(abs(max_y*yhat_model_lstm_20_test[batch] - zero_lstm + zero_real - max_y*test_y[batch]))
    
+    
     #plot
     plt.figure(figsize= (20,10))
     plt.plot(max_y*test_y[batch], label = 'reel') #blue
@@ -212,16 +234,20 @@ for batch in range(0, len(test_x)):
              label = 'GRU 20, diff moy ' + str(mean_diff_gru)[0:4] + ' metres, ecart-type diff ' + str(std_diff_gru)[0:4])
     plt.plot(max_y*yhat_model_lstm_20_test[batch] - zero_lstm + zero_real, 
              label = 'LSTM 20, diff moy ' + str(mean_diff_lstm)[0:4] + ' metres, ecart-type diff ' + str(std_diff_lstm)[0:4])
+    plt.plot(max_y*yhat_model_cnn_test[batch] - zero_cnn + zero_real, 
+             label = 'CNN, diff moy ' + str(mean_diff_cnn)[0:4] + ' metres, ecart-type diff ' + str(std_diff_cnn)[0:4])
     plt.title(list_batches_test[batch])
     plt.legend()
     plt.grid(True)
-    plt.savefig('figures/predict_compare_gru_rnn_lstm_with_recalibration_zero/test/' + list_batches_test[batch] + '.png')
+    #plt.savefig('figures/predict_compare_gru_rnn_lstm_with_recalibration_zero/test/' + list_batches_test[batch] + '.png')
     plt.show()
+    
     
     #list erreurs
     list_mean_diff_simplernn_test.append(mean_diff_simplernn)
     list_mean_diff_gru_test.append(mean_diff_gru)
     list_mean_diff_lstm_test.append(mean_diff_lstm)
+    list_mean_diff_cnn_test.append(mean_diff_cnn)
 
 
 

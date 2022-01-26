@@ -203,6 +203,40 @@ model_gru_20.save('models/model_gru_20')
 
 
 
+################## DEEP LEARNING TEMPORAL SERIES - CNN model  ##################
+model_cnn = tf.keras.Sequential()
+
+model_cnn.add(tf.keras.layers.Conv1D(filters = 20, 
+                                     kernel_size = 5,
+                                     activation = 'relu',
+                                     batch_input_shape = (nb_batches, len_batch_sequence, nb_x_signals),
+                                     ))
+
+model_cnn.add(tf.keras.layers.MaxPooling1D(pool_size= 2,
+                                           strides = 1,
+                                           padding = "valid"))
+
+model_cnn.add(tf.keras.layers.Flatten())
+
+model_cnn.add(tf.keras.layers.Dense(50, activation = 'relu'))
+
+model_cnn.add(tf.keras.layers.Dense(1))
+
+model_cnn.compile(optimizer="adam", loss="mean_squared_error")
+
+model_cnn.summary()
+
+model_cnn.fit(x = train_x,
+                  y = train_y,
+                  batch_size = len(train_batch_select),
+                  epochs = 1000)
+
+model_cnn.save('models/model_cnn')
+
+
+
+
+
 ################# DEEP LEARNING TEMPORAL SERIES - simple RNN 20 units model  ##################
 model_simplernn_20 = tf.keras.Sequential()
 

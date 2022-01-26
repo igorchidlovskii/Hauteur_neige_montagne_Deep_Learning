@@ -28,7 +28,7 @@ completude_pour_batch = 0.8
 write_excel_cleaning = False
 
 #veut-on extraire depuis le site Meteo-France les dernieres donnees (jusqu'a la veille)
-update_last_data = False
+update_last_data = True
 
 #placement dossier de travail
 os.chdir('D:/Documents/Travail perso/Exercices/Montagne_Meteo_France/scripts')
@@ -48,6 +48,7 @@ if update_last_data == True:
     extract.extract_last_data()
 
 #import des données nivologiques: csv les uns après les autres, mois par mois
+os.chdir('D:/Documents/Travail perso/Exercices/Montagne_Meteo_France')
 files_list = os.listdir('data/input/nivo')
 nivo = pd.read_csv('data/input/nivo/' + files_list[1], sep = ';')
 for i in files_list:
@@ -107,14 +108,19 @@ nivo = nivo.drop_duplicates()
 print(nivo.count())
 print('ok doublons - dates vides')
 
+#traitement liste des stations
+liste_stations = auxiliary_functions_processing.processing_liste_stations(liste_stations)
+
 #Merge avec liste des stations (avec altitude, latitute, longitude, nom) avec en clef de merge le station
 nivo_complete = pd.merge(left = liste_stations, right = nivo, how = 'outer', 
                          left_on = 'ID', right_on = 'numer_sta')
 
-nivo_complete.Nom.value_counts().to_excel('data/output/count_stations.xlsx')
+if (write_excel_cleaning == True):
+    nivo_complete.Nom.value_counts().to_excel('data/output/count_stations.xlsx')
 
 #selection colonnes qui nous interessent
-nivo_complete = nivo_complete[['Latitude', 'Longitude', 'Altitude', 'Nom', 'numer_sta', 'date', 'datetime','ff', 
+nivo_complete = nivo_complete[['Latitude', 'Longitude', 'Altitude', 'Nom', 'numer_sta', 'massif',
+                               'date', 'datetime','ff', 
                                't', 'td', 'u', 'n', 'nbas', 'rr24', 'tn24', 'tx24', 'ht_neige', 'ssfrai',  
                                'perssfrai', 'hour', 'year']]
 

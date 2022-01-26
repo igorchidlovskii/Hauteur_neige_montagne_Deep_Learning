@@ -5,9 +5,13 @@ Created on Sun Jun 20 18:43:57 2021
 @author: ichid
 """
 
+#librairies
 import os
 import datetime as dt
 import requests
+import gzip
+import shutil
+
 
 #fonction d'extraction automatique du .csv du serveur de Meteo-France, si c'est demande
 #il n'y a pas de fonction en entree. Il faut juste la date du jour
@@ -15,11 +19,13 @@ import requests
 #(ex : si on est le 1er mars 2021, on va extraire fevrier 2021
 def extract_last_data():
     
+    os.chdir('D:/Documents/Travail perso/Exercices/Montagne_Meteo_France/data/input/nivo')
+    
     #liste des fichiers deja dispo
-    list_nivo = os.listdir('data/input/nivo')
+    list_nivo = os.listdir()
     
     
-    ###EXTRACTION DERNIER MOIS
+    ##### 1) EXTRACTION DERNIER MOIS
     #si premier du mois : on doit extraire le mois precedent
     if (dt.date.today().day == 1):
         
@@ -31,35 +37,30 @@ def extract_last_data():
         #si 1er du mois autre que janvier (on ajoute zero pour les mois a un chiffre, i.e. jusqu'a septembre)
         else: 
             this_year = str(dt.date.today().year)
-            if (len(str(dt.date.today().month)) == 1):
-                this_month = '0'+str(dt.date.today().month)
-            else:
-                this_month = str(dt.date.today().month)
+            this_month = str(dt.date.today().month - 1).zfill(2)
 
 
     #si autre jour que 1er du mois : on peut extraire ce mois-la !
     else:
         this_year = str(dt.date.today().year)
-        if (len(str(dt.date.today().month)) == 1):
-            this_month = '0'+str(dt.date.today().month)
-        else:
-            this_month = str(dt.date.today().month)
+        this_month = this_month = str(dt.date.today().month).zfill(2)
 
     #url ou l'on va venir extraire les donnees : on vient mettre a la fin de l'URL le mois et l'annee
-    url = "https://donneespubliques.meteofrance.fr/donnees_libres/Txt/Nivo/Archive/nivo."+ this_year + this_month + ".csv.gz"
+    url = "https://donneespubliques.meteofrance.fr/donnees_libres/Txt/Nivo/Archive/nivo." + this_year + this_month + ".csv.gz"
 
-    #enregistrement du fichier extrait, avec le nom 'nivo.annee.mois.csv'
-    filename = "data/input/nivo/nivo." + this_year + this_month + ".csv"
+    #enregistrement du fichier extrait, avec le nom 'nivo.annee.mois.csv.gz'
+    filename = "nivo." + this_year + this_month + ".csv.gz"
     with open(filename, "wb") as f:
         r = requests.get(url)
         f.write(r.content)
-    print('fichier extrait : nivo.' + this_year + this_month + '.csv' )
+    print('fichier extrait : nivo.' + this_year + this_month + '.csv.gz' )
         
         
         
-    ###EXTRACTION DE MOIS INTERMEDIAIRES (si il y en a)
+    ##### 2) EXTRACTION DE MOIS INTERMEDIAIRES (si il y en a)
     #par exemple, dernier dans le dossier est 2021/04, on vient ci-dessus d'extraire 2021/06, 
-    #il va falloir extraire 2021/05, mais aussi 2021/04 qui n'est probablement pas complet car extrait avant le 30/31
+    #il va falloir extraire les mois entre les deux : 2021/05, mais aussi 2021/04 qui n'est probablement pas complet car extrait avant le 30/31
+
     
     #dernier fichier dispo (extrait donc dans le passé)
     last_nivo_file = list_nivo[len(list_nivo)-1 ]
@@ -69,10 +70,7 @@ def extract_last_data():
     for y in range(1996, int(this_year)+1):
         for m in range(1,13):
             y_str = str(y)
-            if (len(str(m)) == 1):
-                m_str = '0'+str(m)
-            else:
-                m_str = str(m)
+            m_str = str(m).zfill(2)
         
             list_nivo_theoric.append(int(y_str + m_str))
     
@@ -90,12 +88,30 @@ def extract_last_data():
             url = "https://donneespubliques.meteofrance.fr/donnees_libres/Txt/Nivo/Archive/nivo."+ str(ym) + ".csv.gz"
 
             #enregistrement du fichier extrait, avec le nom 'nivo.annee.mois.csv'
-            filename = "data/input/nivo/nivo." + str(ym) + ".csv"
+            filename = "nivo." + str(ym) + ".csv.gz"
             with open(filename, "wb") as f:
                 r = requests.get(url)
                 f.write(r.content)
-            print('fichier extrait : nivo.' + str(ym) + '.csv' )
+            print('fichier extrait : nivo.' + str(ym) + '.csv.gz' )
     
     
+    ##### 3) EXTRACTION ET SUPPRESSION DES .GZ
+    #ceux qui sont en gz -> extraction en mise en .csv
+    list_nivo_gz = [x for x in os.listdir() if '.gz' in x]
     
+    #extraction des .csv des fichiers .gz
+    for file_gz in list_nivo_gz:
+        with gzip.open(file_gz, 'rb') as f_in:
+            with open(file_gz.replace('.gz', ''), 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        print('extraction csv ' + file_gz.replace('.gz', ''))        
+        
+    #suppression des .gz
+    for file_gz in list_nivo_gz:
+        os.remove(file_gz)
+                
+    
+        
+    
+
     
